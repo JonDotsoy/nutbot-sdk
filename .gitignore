@@ -1,0 +1,8 @@
+*.d.ts
+*.js
+node_modules
+!.vscode
+!.nvmrc
+!.editorconfig
+*.tgz
+!.npmignore

@@ -1,0 +1,9 @@
+*.ts
+!*.d.ts
+.editorconfig
+.nvmrc
+.vscode
+*.tgz
+tsconfig.json
+*/utils_tests/*
+*.spec.*

@@ -1,0 +1,31 @@
+{
+  "name": "nutbot-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prepare": "tsc",
+    "clean": "tsc --build --clean",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "colorette": "^2.0.20",
+    "content-type": "^1.0.5",
+    "ulid": "^2.3.0",
+    "urlpattern-polyfill": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/content-type": "^1.1.5",
+    "@types/node": "^20.4.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6",
+    "zod": "^3.21.4",
+    "zod-to-json-schema": "^3.21.4"
+  },
+  "bin": {
+    "nutbot-anchor": "src/anchor.js"
+  }
+}
