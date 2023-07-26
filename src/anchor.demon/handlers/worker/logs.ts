@@ -13,6 +13,8 @@ export default (anchorDemon: AnchorDemon) =>
       z.object({ workerId: z.string().optional().nullable() }),
     ]),
     z.object({
+      logsPath: z.string(),
+      errorLogsPath: z.string(),
       logs: z.string(),
       error_logs: z.string(),
     }),
@@ -21,6 +23,8 @@ export default (anchorDemon: AnchorDemon) =>
       const logsPath = workerLogPath(workerId);
       const errorLogsPath = workerErrorLogPath(workerId);
       return {
+        logsPath: logsPath.toString(),
+        errorLogsPath: errorLogsPath.toString(),
         logs: await readFile(logsPath, "utf-8"),
         error_logs: await readFile(errorLogsPath, "utf-8"),
       };

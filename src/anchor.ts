@@ -7,6 +7,8 @@ import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { createInterface } from "readline";
+import { ulid } from "ulid";
 
 const { showHelp, config } = makeFlags(
   {
@@ -59,7 +61,11 @@ const forkWaiting = async (dsn: string, execArgs: string[]) => {
 
   if (!nutbot.workflow) throw new Error(`Cannot identified workflow`);
 
-  console.log(`Anchor waiting job from workflow ${nutbot.workflow.workflowId} to exec: ${execArgs.join(" ")}`);
+  console.log(
+    `Anchor waiting job from workflow ${nutbot.workflow.workflowId} to exec: ${
+      execArgs.join(" ")
+    }`,
+  );
 
   for await (const job of nutbot.workflow.consumeJobIterable()) {
     console.log(
@@ -70,7 +76,22 @@ const forkWaiting = async (dsn: string, execArgs: string[]) => {
     const activity = job.active();
 
     const [cmd, ...a] = execArgs;
-    const p = spawn(cmd, a, { stdio: "inherit" });
+    const p = spawn(cmd, a, { stdio: "pipe" });
+
+    const rl = createInterface({ input: p.stdout });
+    const errorRL = createInterface({ input: p.stderr });
+
+    rl.on("line", (line) => {
+      console.log(`${new Date().toUTCString()} LOG ${line}`);
+      job.pushLog("LOG", ulid(), line);
+    });
+    errorRL.on(
+      "line",
+      (line) => {
+        console.log(`${new Date().toUTCString()} ERR ${line}`);
+        job.pushLog("ERR", ulid(), line);
+      },
+    );
 
     try {
       await new Promise<undefined>((resolve, reject) => {

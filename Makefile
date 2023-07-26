@@ -47,3 +47,6 @@ make_bin:
 	echo "  $(ANCHOR_CLI_BINARY)" && \
 	echo "  $(ANCHOR_DEMON_BINARY)"
 
+clean:
+	$(NPM) run clean
+	rm -rf $(DESTINATION)
