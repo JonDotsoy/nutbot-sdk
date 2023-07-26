@@ -16,9 +16,14 @@ export class Workflow {
 
   async *consumeJobIterable() {
     while (true) {
-      const job = await this.consumeJob();
-      if (job) yield job;
-      await new Promise((r) => setTimeout(r, 200));
+      try {
+        const job = await this.consumeJob();
+        if (job) yield job;
+        await new Promise((r) => setTimeout(r, 200));
+      } catch (ex) {
+        console.error(ex);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
   }
 }
@@ -42,7 +47,7 @@ export class Job {
     // while(true) {
     //   await this.reactive();
     //   await new Promise(r => {
-    //     t = 
+    //     t =
     //   })
     // }
   }

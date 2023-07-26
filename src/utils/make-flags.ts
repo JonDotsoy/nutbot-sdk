@@ -20,9 +20,10 @@ export const ShowHelp = (
 ) => {
   const lines: string[] = [];
 
-  const flags = Object.entries(flagsHandlers).map(([f, h]) => {
-    const e = getFlagDescription(h).label;
-    return `[${f}${e ? ` ${e}` : ""}]`;
+  const flags = Object.entries(flagsHandlers).map(([flagName, handler]) => {
+    const e = getFlagDescription(handler).label;
+    const labelValue = e ? ` ${e}` : ``;
+    return `[${flagName}${labelValue}]`;
   });
 
   lines.push(`Usage: ${cliName} ${flags.join(" ")}`);

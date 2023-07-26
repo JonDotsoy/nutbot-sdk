@@ -1,8 +1,9 @@
-import { rejects } from "assert";
 import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import { URLPattern } from "urlpattern-polyfill";
 import { z, ZodSchema } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import * as YAML from "yaml";
+import mimeTypes from "mime-types";
 
 export type RequestListener = (
   req: LiteRequest,
@@ -14,7 +15,31 @@ export class LiteRequest {
     private res: ServerResponse,
   ) {}
 
-  async json() {
+  accept(types: string[]) {
+    const reqHeaderContentType = this.req.headers["accept"];
+
+    if (!reqHeaderContentType) return true;
+
+    return types.map((t) => mimeTypes.lookup(t)).some((contentType) => {
+      return contentType && reqHeaderContentType &&
+        mimeTypes.extension(contentType) ===
+          mimeTypes.extension(reqHeaderContentType);
+    });
+  }
+
+  contentType(types: string[]) {
+    const reqHeaderContentType = this.req.headers["content-type"];
+
+    if (!reqHeaderContentType) return true;
+
+    return types.map((t) => mimeTypes.lookup(t)).some((contentType) => {
+      return contentType && reqHeaderContentType &&
+        mimeTypes.extension(contentType) ===
+          mimeTypes.extension(reqHeaderContentType);
+    });
+  }
+
+  async object() {
     let payload = new Uint8Array([]);
 
     await new Promise((resolve, reject) => {
@@ -31,7 +56,9 @@ export class LiteRequest {
 
     if (!payload.length) return;
 
-    return JSON.parse(new TextDecoder().decode(payload));
+    return this.contentType(["yaml", "yml"])
+      ? YAML.parse(new TextDecoder().decode(payload))
+      : JSON.parse(new TextDecoder().decode(payload));
   }
 }
 
@@ -60,6 +87,10 @@ export const json = (payload: any) =>
   new LiteResponse().setHeader("Content-Type", "application/json")
     .setPayload(JSON.stringify(payload, null, 2));
 
+export const yaml = (payload: any) =>
+  new LiteResponse().setHeader("Content-Type", "application/x-yaml")
+    .setPayload(YAML.stringify(payload));
+
 export class LiteHTTP {
   private router = new Map<
     [method: string, pattern: string | URLPattern],
@@ -80,16 +111,22 @@ export class LiteHTTP {
     handler: (input: z.infer<I>) => Promise<z.infer<O>> | z.infer<O>,
   ) {
     const pathnameSchemaLocation = `/schemas/${name}.schema.json`;
+
     this.use(
       "GET",
       new URLPattern({ pathname: pathnameSchemaLocation }),
       () => json(zodToJsonSchema(z.object({ input, output }))),
     );
+
     this.use(
       "POST",
       pattern,
-      async (req) =>
-        json(await handler(input.parse(await req.json())))
+      async (req) => {
+        const payload = await handler(input.parse(await req.object()));
+
+        const res = req.accept(["yaml", "yml"]) ? yaml(payload) : json(payload);
+
+        return res
           .appendToHeader(
             "Content-Type",
             `; profile=${
@@ -97,7 +134,8 @@ export class LiteHTTP {
                 `${new URL(pathnameSchemaLocation, this.toURL())}`,
               )
             }`,
-          ),
+          );
+      },
     );
   }
 

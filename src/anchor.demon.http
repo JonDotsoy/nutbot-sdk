@@ -1,10 +1,13 @@
 @HOST=http://localhost:8787
 
 ###
-POST {{HOST}}
-
-###
 POST {{HOST}}/worker/status
 
 ###
 POST {{HOST}}/worker/restart
+
+###
+POST {{HOST}}/worker/logs
+
+###
+POST {{HOST}}/demon/logs

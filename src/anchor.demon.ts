@@ -1,28 +1,35 @@
 import { URLPattern } from "urlpattern-polyfill";
 import { spawn } from "node:child_process";
 import { json, LiteHTTP } from "./lite-http";
-import { z } from "zod";
+import { symbol, z } from "zod";
 import cluster from "node:cluster";
 import * as handlers from "./anchor.demon/handlers";
 import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
 import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import { ulid } from "ulid";
+import {
+  demonIDPath,
+  demonPIDPath,
+  logsPath,
+  nutbotAnchorPath,
+  workerErrorLogPath,
+  workerLogPath,
+} from "./anchor-paths";
+import { setWorkerId } from "./worker.utils";
 
 cluster.setupPrimary?.({ silent: true });
 
 export class AnchorDemon {
+  demonLogPath = process.env.ANCHOR_DEMON_LOGS
+  demonErrorLogPath = process.env.ANCHOR_DEMON_ERROR_LOGS
+
   getWorker = () => {
     const id = ulid();
     const worker = cluster.fork();
-    const nutbotAnchorPath = new URL(
-      `.nutbot-anchor/`,
-      pathToFileURL(`${homedir()}/`),
-    );
-    const logsPath = new URL(
-      `logs/`,
-      nutbotAnchorPath,
-    );
+
+    setWorkerId(worker, id);
+
     mkdirSync(new URL(".", logsPath), { recursive: true });
 
     worker.addListener("exit", (code, signal) => {
@@ -35,26 +42,20 @@ export class AnchorDemon {
       console.log(`Worker online id: ${id} pid; ${worker.process.pid}`);
 
       writeFileSync(
-        new URL("demon.pid", nutbotAnchorPath),
+        demonPIDPath,
         `${worker.process.pid}`,
       );
-      writeFileSync(new URL("demon.id", nutbotAnchorPath), `${id}`);
+      writeFileSync(demonIDPath, `${id}`);
 
       worker.process.stdout?.pipe(
         createWriteStream(
-          new URL(`${id}-${worker.process.pid}.log`, logsPath),
+          workerLogPath(id),
         ),
       );
       worker.process.stderr?.pipe(
         createWriteStream(
-          new URL(`${id}-${worker.process.pid}.error_log`, logsPath),
+          workerErrorLogPath(id),
         ),
-      );
-      worker.process.stdout?.pipe(
-        process.stdout,
-      );
-      worker.process.stderr?.pipe(
-        process.stderr,
       );
     });
 
